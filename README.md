@@ -1,3 +1,21 @@
+## Deploy using script
+
+```shell
+# Load environment variables
+source .env
+
+# Local dev env
+anvil
+
+forge script script/DeployGames.s.sol:DeployGames --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+
+# Deploy to Base Sepolia testnet
+forge script script/DeployGames.s.sol:DeployGames --rpc-url https://sepolia.base.org --private-key $PRIVATE_KEY --chain base-sepolia --broadcast --verify
+
+# Base mainnet?
+forge script script/DeployGames.s.sol:DeployGames --rpc-url https://mainnet.base.org --private-key $PRIVATE_KEY --chain base --broadcast --verify
+```
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
