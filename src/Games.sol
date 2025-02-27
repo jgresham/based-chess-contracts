@@ -31,9 +31,12 @@ contract Games {
   event GameUpdateSynced(
     uint256 indexed gameId, string message, bytes signature, address signer, uint8 updateIndex
   );
+  event GameOver(uint256 indexed gameId, uint8 result, address winner);
 
   function createGame(address player1, address player2) public returns (uint256) {
     require(player1 != address(0) && player2 != address(0), "Player addresses cannot be 0");
+    require(player1 != player2, "Player addresses cannot be the same");
+
     // Create a new Game struct in storage
     Game storage newGame = games.push(); // Push an empty struct and get a reference to it
 
@@ -70,11 +73,13 @@ contract Games {
   // anyone can verify a game update, only the creator can set the result and winner
   function verifyGameUpdate(uint256 id, uint8 updateVerified, uint8 result, address winner) public {
     require(id < games.length, "Game does not exist");
-    require(updateVerified <= games[id].updates.length, "Update does not exist");
+    require(updateVerified < games[id].updates.length, "Update does not exist");
     games[id].updateVerifications[msg.sender].push(updateVerified);
     if (msg.sender == games[id].creator) {
+      // result != 0 means the game is over
       if (result != 0) {
         games[id].result = result;
+        emit GameOver(id, result, winner);
       }
       if (winner != address(0) && result == WINNING_RESULT) {
         require(
@@ -100,6 +105,11 @@ contract Games {
       games[id].winner,
       games[id].updates
     );
+  }
+
+  function isWinner(uint256 gameId, address player) public view returns (bool) {
+    require(gameId < games.length, "Game does not exist");
+    return games[gameId].winner == player;
   }
 
   function getGameUpdateVerificationsByVerifier(uint256 id, address verifier)

@@ -16,15 +16,36 @@ contract GamesTest is Test {
   }
 
   function test_CreateGame() public {
+    vm.expectEmit(true, true, true, true);
+    emit Games.GameCreated(0);
     uint256 gameId = games.createGame(PLAYER1, PLAYER2);
     assertEq(gameId, 0);
+    assertEq(games.isWinner(gameId, PLAYER1), false);
+    assertEq(games.isWinner(gameId, PLAYER2), false);
+  }
+
+  function test_RevertCreateGameWithSamePlayer() public {
+    vm.expectRevert("Player addresses cannot be the same");
+    games.createGame(PLAYER1, PLAYER1);
+  }
+
+  function test_RevertCreateGameWithZeroAddressPlayer() public {
+    vm.expectRevert("Player addresses cannot be 0");
+    games.createGame(address(0), PLAYER2);
+
+    vm.expectRevert("Player addresses cannot be 0");
+    games.createGame(PLAYER1, address(0));
   }
 
   function test_CreateAndSyncGame() public {
     vm.startPrank(CREATOR);
     uint256 gameId = games.createGame(PLAYER1, PLAYER2);
     assertEq(gameId, 0);
+
+    vm.expectEmit(true, true, true, true);
+    emit Games.GameUpdateSynced(gameId, "test", bytes("0x123"), PLAYER1, 0);
     games.syncGame(gameId, "test", bytes("0x123"), PLAYER1);
+
     (
       uint256 id,
       address creator,
@@ -52,12 +73,22 @@ contract GamesTest is Test {
       0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe, 0x5dd926aE40ae0deD445603C07D96cFD6B27Fada1
     );
     assertEq(gameId, 0);
+
+    vm.expectEmit(true, true, true, true);
+    emit Games.GameUpdateSynced(
+      gameId,
+      '[White "0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe"] [Black "0x5dd926aE40ae0deD445603C07D96cFD6B27Fada1"] [Event "7SIOGR"] [Site "Based Chess"] [Date "2025-02-20T20:18:53.754Z"] 1. g4 e5 2. f3 Qh4#',
+      bytes("0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe"),
+      address(0x123),
+      0
+    );
     games.syncGame(
       gameId,
       '[White "0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe"] [Black "0x5dd926aE40ae0deD445603C07D96cFD6B27Fada1"] [Event "7SIOGR"] [Site "Based Chess"] [Date "2025-02-20T20:18:53.754Z"] 1. g4 e5 2. f3 Qh4#',
       bytes("0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe"),
       address(0x123)
     );
+
     vm.stopPrank();
     (
       uint256 id,
@@ -86,7 +117,16 @@ contract GamesTest is Test {
     );
     vm.stopPrank();
     assertEq(gameId, 0);
+
     vm.startPrank(0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe);
+    vm.expectEmit(true, true, true, true);
+    emit Games.GameUpdateSynced(
+      gameId,
+      '[White "0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe"] [Black "0x5dd926aE40ae0deD445603C07D96cFD6B27Fada1"] [Event "7SIOGR"] [Site "Based Chess"] [Date "2025-02-20T20:18:53.754Z"] 1. g4 e5 2. f3 Qh4#',
+      hex"9b5f6c7b35719c91cf40187236888cdaf70b97a551cc59d98ae756b10c2717263f382486567f5d6ad7ffb77becaa804a7a79982125da45df25d37ab297b6d9791b",
+      address(0x123),
+      0
+    );
     games.syncGame(
       gameId,
       '[White "0x101a25d0FDC4E9ACa9fA65584A28781046f1BeEe"] [Black "0x5dd926aE40ae0deD445603C07D96cFD6B27Fada1"] [Event "7SIOGR"] [Site "Based Chess"] [Date "2025-02-20T20:18:53.754Z"] 1. g4 e5 2. f3 Qh4#',
@@ -94,6 +134,7 @@ contract GamesTest is Test {
       address(0x123)
     );
     vm.stopPrank();
+
     (
       uint256 id,
       address creator,
@@ -150,8 +191,19 @@ contract GamesTest is Test {
     vm.startPrank(CREATOR);
     uint256 gameId = games.createGame(PLAYER1, PLAYER2);
     assertEq(gameId, 0);
+
+    vm.expectEmit(true, true, true, true);
+    emit Games.GameUpdateSynced(gameId, "test", bytes("0x123"), PLAYER1, 0);
     games.syncGame(gameId, "test", bytes("0x123"), PLAYER1);
+
+    assertEq(games.isWinner(gameId, PLAYER1), false);
+    assertEq(games.isWinner(gameId, PLAYER2), false);
+    vm.expectEmit(true, true, true, true);
+    emit Games.GameOver(gameId, 1, PLAYER1);
     games.verifyGameUpdate(gameId, 0, 1, PLAYER1);
+    assertEq(games.isWinner(gameId, PLAYER1), true);
+    assertEq(games.isWinner(gameId, PLAYER2), false);
+
     (
       uint256 id,
       address creator,

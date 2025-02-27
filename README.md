@@ -16,6 +16,12 @@ forge script script/DeployGames.s.sol:DeployGames --rpc-url https://sepolia.base
 forge script script/DeployGames.s.sol:DeployGames --rpc-url https://mainnet.base.org --private-key $PRIVATE_KEY --chain base --broadcast --verify
 ```
 
+## Verify if it fails afte deploy
+
+```shell
+forge verify-contract <deployed-contract-address> src/Games.sol:Games --chain base-sepolia --etherscan-api-key $ETHERSCAN_API_KEY --watch
+```
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
