@@ -16,12 +16,14 @@ contract GamesTest is Test {
   }
 
   function test_CreateGame() public {
+    vm.startPrank(CREATOR);
     vm.expectEmit(true, true, true, true);
-    emit Games.GameCreated(0);
+    emit Games.GameCreated(0, CREATOR, PLAYER1, PLAYER2);
     uint256 gameId = games.createGame(PLAYER1, PLAYER2);
     assertEq(gameId, 0);
     assertEq(games.isWinner(gameId, PLAYER1), false);
     assertEq(games.isWinner(gameId, PLAYER2), false);
+    vm.stopPrank();
   }
 
   function test_RevertCreateGameWithSamePlayer() public {
@@ -199,7 +201,7 @@ contract GamesTest is Test {
     assertEq(games.isWinner(gameId, PLAYER1), false);
     assertEq(games.isWinner(gameId, PLAYER2), false);
     vm.expectEmit(true, true, true, true);
-    emit Games.GameOver(gameId, 1, PLAYER1);
+    emit Games.GameOver(gameId, 1, PLAYER1, PLAYER2, CREATOR);
     games.verifyGameUpdate(gameId, 0, 1, PLAYER1);
     assertEq(games.isWinner(gameId, PLAYER1), true);
     assertEq(games.isWinner(gameId, PLAYER2), false);

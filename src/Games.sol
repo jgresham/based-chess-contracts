@@ -27,11 +27,17 @@ struct Game {
 contract Games {
   Game[] games;
 
-  event GameCreated(uint256 indexed gameId);
+  event GameCreated(uint256 indexed gameId, address creator, address player1, address player2);
   event GameUpdateSynced(
     uint256 indexed gameId, string message, bytes signature, address signer, uint8 updateIndex
   );
-  event GameOver(uint256 indexed gameId, uint8 result, address winner);
+  event GameOver(
+    uint256 indexed gameId,
+    uint8 result,
+    address winnerIfNotDraw,
+    address loserIfNotDraw,
+    address creator
+  );
 
   function createGame(address player1, address player2) public returns (uint256) {
     require(player1 != address(0) && player2 != address(0), "Player addresses cannot be 0");
@@ -46,7 +52,7 @@ contract Games {
     newGame.player1 = player1;
     newGame.player2 = player2;
 
-    emit GameCreated(newGame.id);
+    emit GameCreated(newGame.id, msg.sender, player1, player2);
 
     return newGame.id;
   }
@@ -55,7 +61,7 @@ contract Games {
     public
     returns (uint256)
   {
-    require(id < games.length, "Game does not exist");
+    require(games.length > id, "Game does not exist");
     // require msg.sender to be creator, player1, or player2
     require(
       msg.sender == games[id].creator || msg.sender == games[id].player1
@@ -72,14 +78,16 @@ contract Games {
 
   // anyone can verify a game update, only the creator can set the result and winner
   function verifyGameUpdate(uint256 id, uint8 updateVerified, uint8 result, address winner) public {
-    require(id < games.length, "Game does not exist");
-    require(updateVerified < games[id].updates.length, "Update does not exist");
+    require(games.length > id, "Game does not exist");
+    require(games[id].updates.length > updateVerified, "Update does not exist");
     games[id].updateVerifications[msg.sender].push(updateVerified);
     if (msg.sender == games[id].creator) {
       // result != 0 means the game is over
       if (result != 0) {
         games[id].result = result;
-        emit GameOver(id, result, winner);
+        address winnerIfNotDraw = winner;
+        address loserIfNotDraw = winner == games[id].player1 ? games[id].player2 : games[id].player1;
+        emit GameOver(id, result, winnerIfNotDraw, loserIfNotDraw, games[id].creator);
       }
       if (winner != address(0) && result == WINNING_RESULT) {
         require(
@@ -95,7 +103,7 @@ contract Games {
     view
     returns (uint256, address, address, address, uint8, address, GameUpdate[] memory)
   {
-    require(id < games.length, "Game does not exist");
+    require(games.length > id, "Game does not exist");
     return (
       games[id].id,
       games[id].creator,
@@ -107,9 +115,9 @@ contract Games {
     );
   }
 
-  function isWinner(uint256 gameId, address player) public view returns (bool) {
-    require(gameId < games.length, "Game does not exist");
-    return games[gameId].winner == player;
+  function isWinner(uint256 id, address player) public view returns (bool) {
+    require(games.length > id, "Game does not exist");
+    return games[id].winner == player;
   }
 
   function getGameUpdateVerificationsByVerifier(uint256 id, address verifier)
@@ -117,7 +125,7 @@ contract Games {
     view
     returns (uint8[] memory)
   {
-    require(id < games.length, "Game does not exist");
+    require(games.length > id, "Game does not exist");
     return games[id].updateVerifications[verifier];
   }
 }
